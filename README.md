@@ -82,7 +82,6 @@ For browser platform,
     <preference name="phonegap-version" value="cli-8.1.1" />
   </widget>
   ```
-
 ## Install optional variables (config.xml)
 
   - ![](https://raw.githubusercontent.com/mapsplugin/cordova-plugin-googlemaps/master/images/icon-android.png) **APP_COMPAT_VERSION = (1.1.0)**<br>
