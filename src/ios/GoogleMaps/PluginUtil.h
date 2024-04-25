@@ -20,7 +20,7 @@
 #import "IPluginProtocol.h"
 #import "PluginViewController.h"
 #import <Cordova/CDVCommandDelegate.h>
-#import <Cordova/CDVCommandDelegateImpl.h>
+
 
 typedef void (^MYCompletionHandler)(NSError *error);
 
@@ -40,6 +40,7 @@ typedef void (^MYCompletionHandler)(NSError *error);
 @end
 
 @interface NSString (GoogleMapsPlugin)
+- (NSString *)urlencode;
 - (NSString*)regReplace:(NSString*)pattern replaceTxt:(NSString*)replaceTxt options:(NSRegularExpressionOptions)options;
 @end
 
@@ -47,10 +48,6 @@ typedef void (^MYCompletionHandler)(NSError *error);
 @interface UIImage (GoogleMapsPlugin)
 - (UIImage*)imageByApplyingAlpha:(CGFloat) alpha;
 - (UIImage *)resize:(CGFloat)width height:(CGFloat)height;
-@end
-
-@interface CDVCommandDelegateImpl (GoogleMapsPlugin)
-- (void)hookSendPluginResult:(CDVPluginResult*)result callbackId:(NSString*)callbackId;
 @end
 
 //
@@ -72,6 +69,11 @@ typedef void (^TIFAnimationGroupCompletionBlock)();
 + (GMSMutablePath *)getMutablePathFromCircle:(CLLocationCoordinate2D)center radius:(double)radius;
 + (NSString *)getAbsolutePathFromCDVFilePath:(UIView*)theWebView cdvFilePath:(NSString *)cdvFilePath;
 + (NSString *)PGM_LOCALIZATION:(NSString *)key;
++ (void)getJsonWithURL:(NSString *)baseUrlStr params:(NSDictionary *)params completionBlock:(void (^)(BOOL succeeded, NSDictionary *response, NSString *error))completionBlock;
++ (void)getJsonWithURL:(NSURL *)url completionBlock:(void (^)(BOOL succeeded, NSDictionary *response, NSString *error))completionBlock;
++ (double)getZoomFromBounds:(GMSCoordinateBounds *)bounds mapWidth:(double)mapWidth mapHeight:(double)mapHeight;
++ (double)_zoom:(double)mapPx worldPx:(double)worldPx fraction:(double)fraction;
++ (double)_latRad:(double)lat;
 @end
 
 

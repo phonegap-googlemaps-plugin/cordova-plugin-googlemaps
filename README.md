@@ -1,4 +1,4 @@
-# Cordova GoogleMaps plugin for Android, iOS and Browser v2.7.1
+# Cordova GoogleMaps plugin for Android, iOS and Browser v2.8.0
 
 | Download | Build test (multiple_maps branch)|
 |----------|---------------------------|
@@ -82,18 +82,15 @@ For browser platform,
     <preference name="phonegap-version" value="cli-8.1.1" />
   </widget>
   ```
-
 ## Install optional variables (config.xml)
 
-  - ![](https://raw.githubusercontent.com/mapsplugin/cordova-plugin-googlemaps/master/images/icon-android.png) **GOOGLE_MAPS_PLAY_SERVICES_VERSION = (16.0.1)**<br>
-    The Google Play Services SDK version.
-    _You need to specify the same version number with all other plugins._
-    Check out the latest version [here](https://developers.google.com/android/guides/releases).
-
-  - ![](https://raw.githubusercontent.com/mapsplugin/cordova-plugin-googlemaps/master/images/icon-android.png) **ANDROID_SUPPORT_V4_VERSION = (27.1.1)**<br>
-    This plugin requires the Android support library v4.
-    _The minimum version is 24.1.0._
-    Check out the latest version [here](https://developer.android.com/topic/libraries/support-library/revisions.html).
+  - ![](https://raw.githubusercontent.com/mapsplugin/cordova-plugin-googlemaps/master/images/icon-android.png) **APP_COMPAT_VERSION = (1.1.0)**<br>
+  **PLAY_SERVICES_BASEMENT_VERSION = (17.2.1)**<br>
+  **PLAY_SERVICES_BASE_VERSION = (17.2.1)**<br>
+  **PLAY_SERVICES_GCM_VERSION = (17.0.0)**<br>
+  **PLAY_SERVICES_LOCATION_VERSION = (17.0.0)**<br>
+  **GOOGLE_MAPS_ANDROID_SDK = (maps-sdk-3.0.0-beta)**<br>
+    cordova-plugin-googlemaps version 2.8.0 or later uses [Maps SDK for Android v.3](https://developers.google.com/maps/documentation/android-sdk/v3-client-migration).
 
   - ![](https://raw.githubusercontent.com/mapsplugin/cordova-plugin-googlemaps/master/images/icon-ios.png) **LOCATION_WHEN_IN_USE_DESCRIPTION**<br>
     This message is displayed when your application requests **LOCATION PERMISSION for only necessary times**.
@@ -113,34 +110,19 @@ For browser platform,
 
 ## Release Notes
 
-  - **v2.7.1**
-    - Fix: (iOS) UiWebView references present in v2.7.0
+  - **v2.8.0**
+    - Important Change: (Android)
+      If `android.useAndroidX=true` and `android.enableJetifier=true` are defined in `gradle.properties`,
+      this plugin uses [Maps SDK for Android v.3.0.0 BETA](https://developers.google.com/maps/documentation/android-sdk/v3-client-migration).
+      If no definition, this plugin uses `com.google.android.gms:play-services-maps`
 
-  - **v2.7.0**
-    - Re-adoption: <a href="https://github.com/mapsplugin/cordova-plugin-googlemaps-sdk" target="_blank">cordova-plugin-googlemaps-sdk dependency</a>
-    - Important update: No longer support `UIWebView` on iOS. `WKWebView` only.
-    - Fix: (iOS) Can't load image files from local host on ionic 4 / 5
-    - Update: (Android) prevent null pointer error in AsyncLoadImage.java
-    - Fix: Css animation interference when call setDiv and there is a push/pop page
-    - Fix: (Android/iOS/Browser) KML parser crash
-    - Fix: flickering and wrong rendering of some DOM elements
-    - Add: `map.stopAnimation()`
-    - Fix: can't remove map while map.animateCamera() is running
-    - Update: (Android) Increase cache memory size
-    - Update: (Android/iOS) Danish localization
-    - Fix: (Android) Prevent resize event after `map.setDiv(null)`
-    - Fix: (Android/iOS) Can not interactive with the map inside <form>
-    - Fix: jslint errors
-    - Fix: marker.setIcon crashes
-    - Update: Set default value range to heading and tilt
-    - Fix: (Android/iOS) touch detection is wrong after clicking on back button very soon.
-    - Fix: An error occurs when you click a marker of marker cluster #2660
-    - Remove promise-7.0.4-min.js.map
-    - Fix: (iOS) bug fix: App crashes if "bearing" property is "<null>"
-    - Fix: HTMLColor2RGBA() converts to incorrect value
-    - Fix: (Android) Can't load marker image from the Internet
-    - many bug fixes...
-
+    - Add: (Android/iOS/Browser) `mapOptions.preferences.restriction` which is able to set the camera bounds.
+    - Add: (Android/iOS/Browser) `mapOptions.preferences.clickableIcons` which is able to be disable clicking on POI icons.
+    - Bug fix: (Android/iOS/Browser) `mapOptions.preferences.building` does not work.
+    - Add: (Android/iOS/Browser) ElevationService
+    - Add: (Android/iOS/Browser) DirectionsService and `map.addDirectionsRenderer()`
+    - Change: (Android/iOS/Browser) `map.setDiv()`, `map.setOptions()` returns `Promise`.
+    - Change: (Android/iOS/Browser) Hides `__pluginDomId` and `__pluginMapId` properties.
 
 ---------------------------------------------------------------------------------------------------------
 

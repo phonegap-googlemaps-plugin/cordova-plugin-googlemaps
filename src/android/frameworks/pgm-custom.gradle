@@ -1,3 +1,22 @@
+def getConvertListe(useAndroidX) {
+  def list = [
+          ["com.google.android.gms.maps.model", "com.google.android.libraries.maps.model"],
+          ["com.google.android.gms.maps", "com.google.android.libraries.maps"]
+  ]
+
+  if (!useAndroidX) {
+    def tmp;
+    def listN = list.size()
+    for (int i = 0; i < listN; i++) {
+      tmp = list[i][0]
+      list[i][0] = list[i][1]
+      list[i][1] = tmp
+    }
+  }
+  return list
+}
+
+
 def searchFileInParents(target) {
   def searchPath = target
   for (int i = 0; i < 8; i++) {
@@ -10,6 +29,59 @@ def searchFileInParents(target) {
     }
   }
   return null;
+}
+
+def replacePackages(file, cvtList, useAndroidX) {
+  def filePath = file.toPath()
+  def lines = java.nio.file.Files.readAllLines(filePath)
+  def linesN = lines.size()
+  def listN = cvtList.size()
+  def anyChanges = false
+  for (int i = 0; i < linesN; i++) {
+    def line = lines.get(i)
+    def needReplace = false;
+    if (useAndroidX && line.contains('android.')) {
+      needReplace = true
+    } else if (!useAndroidX && line.contains('android')) {
+      needReplace = true
+    }
+    if (needReplace) {
+      for (int j = 0; j < listN; j++) {
+        if (line.contains(cvtList[j][0])) {
+          anyChanges = true
+          line = line.replaceAll(cvtList[j][0], cvtList[j][1])
+        }
+      }
+      lines.set(i, line)
+    }
+  }
+
+  if (anyChanges) {
+    println(" [changed] " + file)
+    def fileWriter = new FileWriter(file)
+    def output = new BufferedWriter(fileWriter)
+    for (int i = 0; i < linesN; i++) {
+      output.writeLine(lines.get(i))
+    }
+    output.flush()
+    output.close()
+    fileWriter.close()
+  }
+
+}
+def replaceFiles(matchingPattern, cvtList, useAndroidX) {
+
+  PatternFilterable patternSet = new PatternSet();
+  patternSet.include(matchingPattern);
+
+  def matchedFile = project.files(project.getProjectDir().getParentFile().toPath()).getAsFileTree().matching(patternSet)
+  matchedFile.each { file ->
+    if (!java.nio.file.Files.isReadable(file.toPath())) {
+      return
+    }
+
+    replacePackages(file, cvtList, useAndroidX)
+  }
 }
 
 android {
@@ -35,13 +107,13 @@ android {
   if (widget.preference.size() == 0) {
     throw new GradleException("Please add '<preference name=\"GOOGLE_MAPS_ANDROID_API_KEY\" />' to the config.xml file.")
   }
-  println("preference = " + widget.preference.size())
   Properties props = new Properties()
   def isKeyFound = 0
-  def useBetaSdk = 0
-  props.setProperty("GOOGLE_MAPS_PLAY_SERVICES_VERSION", "16.0.0");
-  props.setProperty("ANDROID_SUPPORT_V4_VERSION", "27.1.1");
-  props.setProperty("GOOGLE_MAPS_ANDROID_SDK", "");
+
+  props.setProperty("GOOGLE_MAPS_PLAY_SERVICES_LOCATION_VERSION", "16.0.0");
+  props.setProperty("GOOGLE_MAPS_ANDROID_SUPPORT_V4_VERSION", "27.1.1");
+  props.setProperty("GOOGLE_MAPS_PLAY_SERVICES_VERSION", "16.1.0");
+
 
   widget.preference.each { pref ->
     def name = pref.attributes().name
@@ -51,13 +123,10 @@ android {
       isKeyFound = 1
       props.setProperty(name, value)
     }
-    if (name == "GOOGLE_MAPS_PLAY_SERVICES_VERSION" ||
-        name == "ANDROID_SUPPORT_V4_VERSION") {
+    if (name == "GOOGLE_MAPS_PLAY_SERVICES_LOCATION_VERSION"||
+        name == "GOOGLE_MAPS_PLAY_SERVICES_VERSION" ||
+        name == "GOOGLE_MAPS_ANDROID_SUPPORT_V4_VERSION") {
       props.setProperty(name, value)
-    }
-    if (name == "GOOGLE_MAPS_ANDROID_SDK") {
-      useBetaSdk = 1
-      props.setProperty("GOOGLE_MAPS_ANDROID_SDK", value)
     }
   }
 
@@ -66,32 +135,45 @@ android {
     throw new GradleException("Please add '<preference name=\"GOOGLE_MAPS_ANDROID_API_KEY\" />' to the config.xml file.")
   }
 
-  if (useBetaSdk == 1) {
-    def libsDirPath = System.getProperty("user.dir")
-    def libsDir = new File("${libsDirPath}/libs/")
-    if (!libsDir.exists()) {
-      libsDir.mkdirs()
-    }
+  def hasUseAndroidX = project.ext.has('android.useAndroidX')
+  def hasEnableJetifier = project.ext.has('android.enableJetifier')
+  def useAndroidX = hasUseAndroidX && hasEnableJetifier &&
+          'true' == project.ext.get('android.useAndroidX') &&
+          'true' == project.ext.get('android.enableJetifier')
 
-    def mapsSDK = props.getProperty("GOOGLE_MAPS_ANDROID_SDK")
-    def f = new File("${libsDir.absolutePath}/${mapsSDK}.aar")
-    println("---->lib = " + f.absolutePath);
-    if (!f.exists()) {
-      new URL("https://dl.google.com/dl/geosdk/${mapsSDK}.aar").withInputStream{ i -> f.withOutputStream{ it << i }}
-    }
+  //-----------------------------------------------
+  // Replace the source code of this plugin
+  //-----------------------------------------------
+  def cvtList = getConvertListe(useAndroidX)
+
+  replaceFiles("**/plugin/google/maps/*.java", cvtList, useAndroidX)
+
+  if (useAndroidX) {
+    //----------
+    // maps SDK
+    //----------
+
     dependencies {
-      implementation name: mapsSDK, ext:'aar'
+      implementation 'com.google.android.libraries.maps:maps:3.1.0-beta'
+      implementation 'com.android.support:multidex:1.0.3'
     }
-  }
 
-  def PLAY_SERVICES_VERSION = props.get("GOOGLE_MAPS_PLAY_SERVICES_VERSION")
-  def ANDROID_SUPPORT_V4_VERSION = props.get("ANDROID_SUPPORT_V4_VERSION")
-  println("---->PLAY_SERVICES_VERSION = ${PLAY_SERVICES_VERSION}")
-  println("---->ANDROID_SUPPORT_V4_VERSION = ${ANDROID_SUPPORT_V4_VERSION}")
-  dependencies {
-    implementation "com.google.android.gms:play-services-maps:${PLAY_SERVICES_VERSION}"
-    implementation "com.google.android.gms:play-services-location:${PLAY_SERVICES_VERSION}"
-    implementation "com.android.support:support-core-utils:${ANDROID_SUPPORT_V4_VERSION}"
+    defaultConfig {
+      multiDexEnabled true
+    }
+
+  } else {
+    def PLAY_SERVICES_VERSION = props.getProperty("GOOGLE_MAPS_PLAY_SERVICES_VERSION")
+    def PLAY_SERVICES_LOCATION_VERSION = props.getProperty("GOOGLE_MAPS_PLAY_SERVICES_LOCATION_VERSION")
+    def ANDROID_SUPPORT_V4_VERSION = props.getProperty("GOOGLE_MAPS_ANDROID_SUPPORT_V4_VERSION")
+    println("---->GOOGLE_MAPS_PLAY_SERVICES_VERSION = ${PLAY_SERVICES_VERSION}")
+    println("---->GOOGLE_MAPS_PLAY_SERVICES_LOCATION_VERSION = ${PLAY_SERVICES_LOCATION_VERSION}")
+    println("---->GOOGLE_MAPS_ANDROID_SUPPORT_V4_VERSION = ${ANDROID_SUPPORT_V4_VERSION}")
+    dependencies {
+      implementation "com.google.android.gms:play-services-maps:${PLAY_SERVICES_VERSION}"
+      implementation "com.google.android.gms:play-services-location:${PLAY_SERVICES_LOCATION_VERSION}"
+      implementation "com.android.support:support-core-utils:${ANDROID_SUPPORT_V4_VERSION}"
+    }
   }
 
 

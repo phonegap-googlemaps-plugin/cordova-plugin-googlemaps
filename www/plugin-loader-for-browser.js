@@ -28,6 +28,8 @@ module.exports = {
   MapTypeId: require('cordova-plugin-googlemaps.MapTypeId'),
   environment: require('cordova-plugin-googlemaps.Environment'),
   Geocoder: require('cordova-plugin-googlemaps.Geocoder')(execCmd),
+  ElevationService: require('cordova-plugin-googlemaps.ElevationService')(execCmd),
+  DirectionsService: require('cordova-plugin-googlemaps.DirectionsService')(execCmd),
   LocationService: require('cordova-plugin-googlemaps.LocationService')(execCmd),
   geometry: {
     encoding: require('cordova-plugin-googlemaps.encoding'),

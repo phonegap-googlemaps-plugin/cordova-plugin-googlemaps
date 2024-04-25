@@ -25,7 +25,6 @@ import org.json.JSONObject;
 
 import java.util.Locale;
 
-
 public class PluginStreetViewPanorama extends MyPlugin implements
     IPluginView, StreetViewPanorama.OnStreetViewPanoramaCameraChangeListener,
     StreetViewPanorama.OnStreetViewPanoramaChangeListener,

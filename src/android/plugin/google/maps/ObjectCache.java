@@ -1,6 +1,6 @@
 package plugin.google.maps;
 
-import android.util.LruCache;
+import android.support.v4.util.LruCache;
 
 import java.util.HashSet;
 

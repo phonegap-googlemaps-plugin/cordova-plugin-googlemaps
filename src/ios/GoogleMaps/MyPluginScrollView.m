@@ -28,27 +28,33 @@
 
 - (void)attachView:(UIView *)view depth:(NSInteger)depth {
   NSArray *subviews = [self subviews];
-  UIView *subview;
-  NSInteger tag;
   int viewCnt = (int)[subviews count];
   int index = viewCnt;
-  for (int i = 0; i < viewCnt; i++) {
-    subview = [subviews objectAtIndex: i];
-    tag = subview.tag;
-    if (tag == 0) {
-      continue;
-    }
-    if (tag > depth) {
+  depth += viewCnt;
+
+  NSArray *sortedArray;
+  sortedArray = [subviews sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
+    NSInteger first = ((UIView*)a).tag;
+    NSInteger second = ((UIView*)b).tag;
+    return first - second;
+  }];
+
+
+  for (int i = 0; i < sortedArray.count; i++) {
+    ((UIView *)[sortedArray objectAtIndex:i]).tag = i;
+    
+    if (i > depth) {
       index = i;
       break;
     }
   }
-  
+
+
   [self insertSubview:view atIndex:index];
 }
 - (void)detachView:(UIView *)view {
   [view removeFromSuperview];
-  
+
 }
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {

@@ -855,6 +855,9 @@ public class PluginMarker extends MyPlugin implements MyPluginInterface {
     String propertyId = "marker_property_" + id;
     pluginMap.objects.remove(propertyId);
 
+    String imageSizeKey = "marker_imageSize_" + id;
+    pluginMap.objects.remove(imageSizeKey);
+
     cordova.getActivity().runOnUiThread(new Runnable() {
       @Override
       public void run() {
@@ -1147,8 +1150,8 @@ public class PluginMarker extends MyPlugin implements MyPluginInterface {
           self.pluginMap.objects.remove(markerImgSizeTag);
           self.pluginMap.objects.put(markerImgSizeTag, imageSize);
 
-          result.image.recycle();
-          result.image = null;
+//          result.image.recycle();   // cause crash on maps-sdk-3.1.0-beta
+//          result.image = null;
 
           // The `anchor` of the `icon` property
           if (iconProperty.containsKey("anchor")) {

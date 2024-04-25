@@ -42,24 +42,59 @@ function displayGrayMap(container) {
 function PluginMap(mapId, options) {
   var self = this;
   BaseClass.apply(this);
-  var mapDiv = document.querySelector('[__pluginMapId=\'' + mapId + '\']');
-  mapDiv.style.backgroundColor = 'rgb(229, 227, 223)';
+  var eles = Array.from(document.querySelectorAll('*'));
+  eles = eles.filter(function(e) {
+    return e.__pluginMapId === mapId;
+  });
+  var actualMapDiv = null;
+  if (eles.length === 1) {
+    actualMapDiv = eles[0];
+  }
 
   var container = document.createElement('div');
   container.style.userSelect='none';
   container.style['-webkit-user-select']='none';
   container.style['-moz-user-select']='none';
   container.style['-ms-user-select']='none';
-  mapDiv.style.position = 'relative';
   container.style.position = 'absolute';
   container.style.top = 0;
   container.style.bottom = 0;
   container.style.right = 0;
   container.style.left = 0;
-  mapDiv.insertBefore(container, mapDiv.firstElementChild);
+  actualMapDiv.insertBefore(container, actualMapDiv.firstElementChild);
+
+  var shadowRoot = container.attachShadow({mode: 'open'});
+
+  var style = document.createElement('style');
+  style.setAttribute('type', 'text/css');
+  style.innerHTML = [
+    ':host {color: black;}',
+    'button.gm-control-active>img {display: none;}',
+    'button.gm-control-active>img:nth-child(1) {display: inline;}'
+  ].join("\n");
+  shadowRoot.appendChild(style);
+
+  var mapDiv = document.createElement('div');
+  mapDiv.style.position = 'relative';
+  mapDiv.style.left = 0;
+  mapDiv.style.top = 0;
+  mapDiv.style.right = 0;
+  mapDiv.style.bottom = 0;
+  mapDiv.style.width = "100%";
+  mapDiv.style.height = "100%";
+  shadowRoot.appendChild(mapDiv);
+
+  mapDiv.style.backgroundColor = 'rgb(229, 227, 223)';
+
+
+
+
+  // mapDiv.insertBefore(container, mapDiv.firstElementChild);
+  // shadowRoot.appendChild(container);
 
   self.set('isGoogleReady', false);
   self.set('container', container);
+  // self.set('shadowRoot', shadowRoot);
   self.PLUGINS = {};
 
   Object.defineProperty(self, '__pgmId', {
@@ -97,7 +132,8 @@ function PluginMap(mapId, options) {
       minZoom: 2,
       disableDefaultUI: true,
       zoomControl: true,
-      center: {lat: 0, lng: 0}
+      center: {lat: 0, lng: 0},
+      clickableIcons: true
     };
 
     if (options) {
@@ -113,74 +149,49 @@ function PluginMap(mapId, options) {
           mapInitOptions.zoomControl = options.controls.zoom == true;
         }
       }
+
+      if (options.gestures) {
+        mapInitOptions.draggable = options.gestures.scroll;
+        mapInitOptions.gestureHandling = options.gestures.scroll;
+        mapInitOptions.disableDoubleClickZoom = !options.gestures.zoom;
+      }
       if (options.preferences) {
+
+        if (options.preferences && options.preferences.restriction) {
+          mapInitOptions.restriction = {
+            latLngBounds: {
+              south: options.preferences.restriction.south,
+              west: options.preferences.restriction.west,
+              north: options.preferences.restriction.north,
+              east: options.preferences.restriction.east
+            },
+            strictBounds: false
+          };
+        }
+
         if (options.preferences.zoom) {
           mapInitOptions.minZoom = options.preferences.zoom.minZoom;
           if (options.preferences.zoom.maxZoom) {
             mapInitOptions.maxZoom = options.preferences.zoom.maxZoom;
           }
         }
+
+        if ('clickableIcons' in options.preferences) {
+          mapInitOptions.clickableIcons = options.preferences.clickableIcons === true;
+        }
       }
     }
 
-    var map = new google.maps.Map(container, mapInitOptions);
+    var map = new google.maps.Map(mapDiv, mapInitOptions);
     map.mapTypes = mapTypeReg;
     self.set('map', map);
 
-    var boundsLimit = null;
-    if (options.preferences && options.preferences.gestureBounds &&
-        options.preferences.gestureBounds.length > 0) {
-      boundsLimit = new google.maps.LatLngBounds();
-      options.preferences.gestureBounds.forEach(function(pos) {
-        boundsLimit.extend(pos);
-      });
-    }
-    map.set('boundsLimit', boundsLimit);
 
     var timeoutError = setTimeout(function() {
       self.trigger('load_error');
       displayGrayMap(mapDiv);
     }, 3000);
 
-    map.addListener('bounds_changed', function() {
-      var boundsLimit = map.get('boundsLimit');
-      if (!boundsLimit) {
-        return;
-      }
-      var visibleBounds = map.getBounds();
-      if (boundsLimit.intersects(visibleBounds) ||
-          visibleBounds.contains(boundsLimit.getNorthEast()) && visibleBounds.contains(boundsLimit.getSouthWest()) ||
-          boundsLimit.contains(visibleBounds.getNorthEast()) && boundsLimit.contains(visibleBounds.getSouthWest())) {
-        return;
-      }
-      var center = map.getCenter();
-      var dummyLat = center.lat(),
-        dummyLng = center.lng();
-      var ne = boundsLimit.getNorthEast(),
-        sw = boundsLimit.getSouthWest();
-      if (dummyLat < sw.lat() ) {
-        dummyLat = sw.lat();
-      } else if (dummyLat > ne.lat()) {
-        dummyLat = ne.lat();
-      }
-      if (dummyLng < 0) {
-        // the Western Hemisphere
-        if (dummyLng > ne.lng()) {
-          dummyLng = ne.lng();
-        } else if (dummyLng < sw.lng()) {
-          dummyLng = sw.lng();
-        }
-      } else {
-        // the Eastern Hemisphere
-        if (dummyLng > ne.lng()) {
-          dummyLng = ne.lng();
-        } else if (dummyLng < sw.lng()) {
-          dummyLng = sw.lng();
-        }
-      }
-      var dummyLatLng = new google.maps.LatLng(dummyLat, dummyLng);
-      map.panTo(dummyLatLng);
-    });
 
     google.maps.event.addListenerOnce(map, 'projection_changed', function() {
       clearTimeout(timeoutError);
@@ -224,7 +235,7 @@ function PluginMap(mapId, options) {
             options.camera.target.forEach(function(pos) {
               bounds.extend(pos);
             });
-            map.fitBounds(bounds, 5);
+            map.fitBounds(bounds, 'padding' in options.camera ? options.camera.padding || 0 : 5);
           } else {
             map.setCenter(options.camera.target);
           }
@@ -256,7 +267,13 @@ PluginMap.prototype.setOptions = function(onSuccess, onError, args) {
   var map = self.get('map'),
     options = args[0];
 
-  var mapInitOptions = {};
+  var mapInitOptions = {
+    draggable: true,
+    gestureHandling: 'auto',
+    disableDoubleClickZoom: false,
+    heading: 0,
+    tilt: 0
+  };
 
   if (options) {
     if (options.mapType) {
@@ -268,26 +285,51 @@ PluginMap.prototype.setOptions = function(onSuccess, onError, args) {
 
     if (options.controls) {
       if (options.controls.zoom !== undefined) {
-        mapInitOptions.zoomControl = options.controls.zoom == true;
+        mapInitOptions.zoomControl = options.controls.zoom === true;
       }
     }
+    if (options.gestures) {
+      mapInitOptions.draggable = options.gestures.scroll === true;
+      mapInitOptions.gestureHandling = options.gestures.scroll === true;
+      mapInitOptions.disableDoubleClickZoom = !(options.gestures.zoom === true);
+    }
+
     if (options.preferences) {
-      if (options.preferences.zoom) {
-        mapInitOptions.minZoom = Math.max(options.preferences.zoom || 2, 2);
-        if (options.preferences.zoom.maxZoom) {
-          mapInitOptions.maxZoom = options.preferences.zoom.maxZoom;
+      if ('zoom' in options.preferences) {
+        if (options.preferences.zoom) {
+          if ('minZoom' in options.preferences.zoom) {
+            mapInitOptions.minZoom = Math.max(options.preferences.zoom.minZoom, 2);
+          } else {
+            mapInitOptions.minZoom = undefined;
+          }
+          if ('maxZoom' in options.preferences.zoom) {
+            mapInitOptions.maxZoom = Math.min(options.preferences.zoom.maxZoom, 23);
+          } else {
+            mapInitOptions.maxZoom = undefined;
+          }
+        } else {
+          mapInitOptions.zoom = undefined;
         }
       }
 
-      if ('gestureBounds' in options.preferences) {
-        var boundsLimit = null;
-        if (options.preferences.gestureBounds && options.preferences.gestureBounds.length > 0) {
-          boundsLimit = new google.maps.LatLngBounds();
-          options.preferences.gestureBounds.forEach(function(pos) {
-            boundsLimit.extend(pos);
-          });
+      if ('restriction' in options.preferences) {
+        if (options.preferences.restriction) {
+          mapInitOptions.restriction = {
+            latLngBounds: {
+              south: options.preferences.restriction.south,
+              west: options.preferences.restriction.west,
+              north: options.preferences.restriction.north,
+              east: options.preferences.restriction.east
+            },
+            strictBounds: false
+          };
+        } else {
+          mapInitOptions.restriction = undefined;
         }
-        map.set('boundsLimit', boundsLimit);
+      }
+
+      if ('clickableIcons' in options.preferences) {
+        mapInitOptions.clickableIcons = options.preferences.clickableIcons === true;
       }
 
     }
@@ -327,6 +369,7 @@ PluginMap.prototype.setOptions = function(onSuccess, onError, args) {
   onSuccess();
 };
 
+
 PluginMap.prototype.setActiveMarkerId = function(onSuccess, onError, args) {
   var self = this,
     markerId = args[0];
@@ -347,22 +390,44 @@ PluginMap.prototype.setDiv = function(onSuccess, onError, args) {
   var self = this,
     map = self.get('map'),
     container = self.get('container');
-
-  if (args.length === 0) {
-    if (container && container.parentNode) {
-      container.parentNode.removeAttribute('__pluginMapId');
-      container.parentNode.removeChild(container);
-    }
-  } else {
-    var domId = args[0];
-    var mapDiv = document.querySelector('[__pluginDomId=\'' + domId + '\']');
-    mapDiv.style.position = 'relative';
-    mapDiv.insertBefore(container, mapDiv.firstElementChild);
-    mapDiv.setAttribute('__pluginMapId', self.__pgmId);
+    // shadowRoot = self.get('shadowRoot');
+  if (!container) {
+    onError('[map.setDiv] container is undefined');
+    return;
   }
 
-  google.maps.event.trigger(map, 'resize');
-  onSuccess();
+  if (args.length === 0) {
+    if (container.parentNode && container.parentNode.parentNode) {
+      container.parentNode.parentNode.removeChild(container.parentNode);
+    }
+    onSuccess();
+  } else {
+
+    if (container.parentNode && !container.parentNode.parentNode) {
+      var domId = args[0];
+      var eles = Array.from(document.querySelectorAll('*'));
+      eles = eles.filter(function(e) {
+        return e.__pluginDomId === domId;
+      });
+      var actualMapDiv = eles[0];
+      Object.defineProperty(actualMapDiv, '__pluginMapId', {
+        enumerable: false,
+        value: self.__pgmId
+      });
+      actualMapDiv.style.position = 'relative';
+      actualMapDiv.insertBefore(container, actualMapDiv.firstElementChild);
+
+      var offsetHeight = container.offsetHeight;
+      container.offsetHeight = offsetHeight - 1;
+      setTimeout(function() {
+        container.offsetHeight = offsetHeight;
+        google.maps.event.trigger(map, 'resize');
+      }, 1000);
+    }
+
+    onSuccess();
+  }
+
 };
 PluginMap.prototype.resizeMap = function(onSuccess) {
   var self = this;
