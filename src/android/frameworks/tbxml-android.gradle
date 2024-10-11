@@ -2,8 +2,11 @@ repositories {
   maven { url 'https://maven.google.com' }
   mavenCentral()
   jcenter()
+
   def libsDirPath = System.getProperty("user.dir")
-  flatDir{
+
+  // Causes Warning: Using flatDir should be avoided because it doesn't support any meta-data formats.
+  flatDir {
     dirs 'src/main/libs', 'libs', "${libsDirPath}/libs"
   }
 }
