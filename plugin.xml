@@ -155,7 +155,7 @@
       <preference name="BackgroundColor" value="0"/>
 
       <!-- for this plugin -->
-      <preference name="android-minSdkVersion" value="19"/>
+      <preference name="android-minSdkVersion" value="21"/>
     </config-file>
 
     <config-file target="res/xml/config.xml" parent="/*">
@@ -301,8 +301,6 @@
     <resource-file src="src/android/res/values-da/pgm_strings.xml" target="res/values-da/pgm_strings.xml"/>
     <!-- localized messages for Vietnamese -->
     <resource-file src="src/android/res/values-vi/pgm_strings.xml" target="res/values-vi/pgm_strings.xml"/>
-
-    <dependency id="cordova-androidx-build"  />
 
   </platform>
 
